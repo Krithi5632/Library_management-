@@ -1,141 +1,405 @@
-
 #include <stdio.h>
 #include <string.h>
 
-struct Book
+#define MAX_BOOKS 100
+#define MAX_USERS 50
+
+#define PHYSICS   1
+#define CHEMISTRY 2
+#define MATHS     4
+#define ALL_BOOKS 7
+
+#define ADMIN 1
+#define STUDENT 2
+
+typedef struct
 {
     int id;
-    char name[50];
-    char department[20];
-};
+    char title[50];
+    int category;
+    int quantity;
+} Book;
 
-int main()
+typedef struct
 {
-    struct Book books[6] =
+    int id;
+    char username[30];
+    char password[30];
+    int role;
+    int permissions;
+} User;
+
+Book books[MAX_BOOKS];
+User users[MAX_USERS];
+
+int book_count = 0;
+int user_count = 0;
+
+/* Add a new book */
+void add_book(void)
+{
+    if(book_count >= MAX_BOOKS)
     {
-        {101, "Engineering Mathematics", "Maths"},
-        {102, "Calculus", "Maths"},
-        {201, "Engineering Physics", "Physics"},
-        {202, "Applied Physics", "Physics"},
-        {301, "Engineering Chemistry", "Chemistry"},
-        {302, "Organic Chemistry", "Chemistry"}
-    };
-
-    int role, choice, bookId;
-    int i, found;
-    char department[20];
-
-    printf("\n===== LIBRARY MANAGEMENT SYSTEM =====\n");
-
-    printf("\n1. Admin");
-    printf("\n2. Maths Department");
-    printf("\n3. Physics Department");
-    printf("\n4. Chemistry Department");
-
-    printf("\n\nEnter your role: ");
-    scanf("%d", &role);
-
-    if (role == 1)
-    {
-        strcpy(department, "Admin");
-        printf("\nWelcome Admin!\n");
+        printf("Book limit reached\n");
+        return;
     }
-    else if (role == 2)
+
+    Book *b = &books[book_count];
+
+    printf("Enter Book ID: ");
+    scanf("%d", &b->id);
+
+    printf("Enter Book Name: ");
+    scanf(" %49[^\n]", b->title);
+
+    printf("1.Physics 2.Chemistry 3.Maths\n");
+    printf("Enter Category: ");
+    scanf("%d", &b->category);
+
+    if(b->category < 1 || b->category > 3)
     {
-        strcpy(department, "Maths");
-        printf("\nWelcome Maths Student!\n");
+        printf("Invalid category\n");
+        return;
     }
-    else if (role == 3)
-    {
-        strcpy(department, "Physics");
-        printf("\nWelcome Physics Student!\n");
-    }
-    else if (role == 4)
-    {
-        strcpy(department, "Chemistry");
-        printf("\nWelcome Chemistry Student!\n");
-    }
+
+    if(b->category == 1)
+        b->category = PHYSICS;
+    else if(b->category == 2)
+        b->category = CHEMISTRY;
     else
+        b->category = MATHS;
+
+    printf("Enter Quantity: ");
+    scanf("%d", &b->quantity);
+
+    if(b->quantity < 0)
     {
-        printf("\nInvalid role selected!\n");
-        return 0;
+        printf("Invalid quantity\n");
+        return;
     }
+
+    book_count++;
+
+    printf("Book added successfully\n");
+}
+
+/* Display all books */
+void display_books(void)
+{
+    printf("\n--- BOOK LIST ---\n");
+
+    for(int i = 0; i < book_count; i++)
+    {
+        printf("\nID: %d", books[i].id);
+        printf("\nName: %s", books[i].title);
+
+        printf("\nCategory: ");
+
+        if(books[i].category == PHYSICS)
+            printf("Physics");
+        else if(books[i].category == CHEMISTRY)
+            printf("Chemistry");
+        else
+            printf("Maths");
+
+        printf("\nQuantity: %d\n", books[i].quantity);
+    }
+}
+
+/* Add student */
+void add_student(void)
+{
+    if(user_count >= MAX_USERS)
+    {
+        printf("User limit reached\n");
+        return;
+    }
+
+    User *u = &users[user_count];
+
+    printf("Enter Student ID: ");
+    scanf("%d", &u->id);
+
+    printf("Enter Username: ");
+    scanf("%29s", u->username);
+
+    printf("Enter Password: ");
+    scanf("%29s", u->password);
+
+    u->role = STUDENT;
+    u->permissions = 0;
+
+    user_count++;
+
+    printf("Student added successfully\n");
+}
+
+/* Assign permission */
+void assign_permission(void)
+{
+    int id, choice, found = 0;
+
+    printf("Enter Student ID: ");
+    scanf("%d", &id);
+
+    for(int i = 0; i < user_count; i++)
+    {
+        if(users[i].id == id && users[i].role == STUDENT)
+        {
+            found = 1;
+
+            printf("\n1.Physics");
+            printf("\n2.Chemistry");
+            printf("\n3.Maths");
+            printf("\n4.All Subjects");
+            printf("\n5.No Access");
+
+            printf("\nSelect Permission: ");
+            scanf("%d", &choice);
+
+            switch(choice)
+            {
+                case 1:
+                    users[i].permissions = PHYSICS;
+                    break;
+
+                case 2:
+                    users[i].permissions = CHEMISTRY;
+                    break;
+
+                case 3:
+                    users[i].permissions = MATHS;
+                    break;
+
+                case 4:
+                    users[i].permissions = ALL_BOOKS;
+                    break;
+
+                case 5:
+                    users[i].permissions = 0;
+                    break;
+
+                default:
+                    printf("Invalid choice\n");
+                    return;
+            }
+
+            printf("Permission assigned successfully\n");
+            break;
+        }
+    }
+
+    if(!found)
+        printf("Student not found\n");
+}
+
+/* View books according to permission */
+void view_allowed_books(User u)
+{
+    printf("\n--- YOUR BOOKS ---\n");
+
+    for(int i = 0; i < book_count; i++)
+    {
+        if(u.permissions & books[i].category)
+        {
+            printf("\nID: %d", books[i].id);
+            printf("\nName: %s", books[i].title);
+            printf("\nQuantity: %d\n", books[i].quantity);
+        }
+    }
+}
+
+/* Borrow book */
+void borrow_book(User u)
+{
+    int id, found = 0;
+
+    printf("Enter Book ID: ");
+    scanf("%d", &id);
+
+    for(int i = 0; i < book_count; i++)
+    {
+        if(books[i].id == id)
+        {
+            found = 1;
+
+            if(!(u.permissions & books[i].category))
+            {
+                printf("Access Denied!\n");
+                return;
+            }
+
+            if(books[i].quantity > 0)
+            {
+                books[i].quantity--;
+                printf("Book borrowed successfully\n");
+            }
+            else
+                printf("Book unavailable\n");
+
+            return;
+        }
+    }
+
+    if(!found)
+        printf("Book not found\n");
+}
+
+/* Return book */
+void return_book(User u)
+{
+    int id, found = 0;
+
+    printf("Enter Book ID to return: ");
+    scanf("%d", &id);
+
+    for(int i = 0; i < book_count; i++)
+    {
+        if(books[i].id == id)
+        {
+            found = 1;
+
+            if(!(u.permissions & books[i].category))
+            {
+                printf("Access Denied!\n");
+                return;
+            }
+
+            books[i].quantity++;
+            printf("Book returned successfully\n");
+            return;
+        }
+    }
+
+    if(!found)
+        printf("Book not found\n");
+}
+
+/* Admin menu */
+void admin_menu(void)
+{
+    int choice;
 
     do
     {
-        printf("\n===== LIBRARY MENU =====");
-        printf("\n1. View Books");
-        printf("\n2. Search Book");
-        printf("\n3. Exit");
+        printf("\n===== ADMIN MENU =====\n");
+        printf("1.Add Book\n");
+        printf("2.Display Books\n");
+        printf("3.Add Student\n");
+        printf("4.Assign Permission\n");
+        printf("5.Logout\n");
 
-        printf("\nEnter your choice: ");
+        printf("Enter Choice: ");
         scanf("%d", &choice);
 
-        if (choice == 1)
+        switch(choice)
         {
-            printf("\nAvailable Books:\n");
-
-            for (i = 0; i < 6; i++)
-            {
-                if (role == 1)
-                {
-                    printf("\nBook ID: %d", books[i].id);
-                    printf("\nBook Name: %s", books[i].name);
-                    printf("\nDepartment: %s\n", books[i].department);
-                }
-                else if (strcmp(department, books[i].department) == 0)
-                {
-                    printf("\nBook ID: %d", books[i].id);
-                    printf("\nBook Name: %s", books[i].name);
-                    printf("\nDepartment: %s\n", books[i].department);
-                }
-            }
-        }
-        else if (choice == 2)
-        {
-            printf("\nEnter Book ID: ");
-            scanf("%d", &bookId);
-
-            found = 0;
-
-            for (i = 0; i < 6; i++)
-            {
-                if (books[i].id == bookId)
-                {
-                    found = 1;
-
-                    if (role == 1 ||
-                        strcmp(department, books[i].department) == 0)
-                    {
-                        printf("\nBook Found!");
-                        printf("\nBook Name: %s", books[i].name);
-                        printf("\nDepartment: %s\n", books[i].department);
-                    }
-                    else
-                    {
-                        printf("\nAccess Denied!");
-                        printf("\nYou can only access books from your department.\n");
-                    }
-
-                    break;
-                }
-            }
-
-            if (found == 0)
-            {
-                printf("\nBook ID not found!\n");
-            }
-        }
-        else if (choice == 3)
-        {
-            printf("\nThank you for visiting the library!\n");
-        }
-        else
-        {
-            printf("\nInvalid choice! Try again.\n");
+            case 1: add_book(); break;
+            case 2: display_books(); break;
+            case 3: add_student(); break;
+            case 4: assign_permission(); break;
+            case 5: printf("Logout\n"); break;
+            default: printf("Invalid choice\n");
         }
 
-    } while (choice != 3);
+    } while(choice != 5);
+}
+
+/* Student menu */
+void student_menu(User u)
+{
+    int choice;
+
+    do
+    {
+        printf("\n===== STUDENT MENU =====\n");
+        printf("1.View Allowed Books\n");
+        printf("2.Borrow Book\n");
+        printf("3.Return Book\n");
+        printf("4.Logout\n");
+
+        printf("Enter Choice: ");
+        scanf("%d", &choice);
+
+        switch(choice)
+        {
+            case 1: view_allowed_books(u); break;
+            case 2: borrow_book(u); break;
+            case 3: return_book(u); break;
+            case 4: printf("Logout\n"); break;
+            default: printf("Invalid choice\n");
+        }
+
+    } while(choice != 4);
+}
+
+/* Login */
+int login(User *logged_user)
+{
+    char username[30], password[30];
+
+    printf("Username: ");
+    scanf("%29s", username);
+
+    printf("Password: ");
+    scanf("%29s", password);
+
+    for(int i = 0; i < user_count; i++)
+    {
+        if(strcmp(users[i].username, username) == 0 &&
+           strcmp(users[i].password, password) == 0)
+        {
+            *logged_user = users[i];
+            return 1;
+        }
+    }
 
     return 0;
 }
+
+/* Main function */
+int main(void)
+{
+    User admin = {1, "admin", "admin123", ADMIN, ALL_BOOKS};
+
+    users[user_count++] = admin;
+
+    User logged_user;
+    int choice;
+
+    while(1)
+    {
+        printf("\n===== LIBRARY MANAGEMENT =====\n");
+        printf("1.Login\n");
+        printf("2.Exit\n");
+
+        printf("Enter Choice: ");
+        scanf("%d", &choice);
+
+        switch(choice)
+        {
+            case 1:
+                if(login(&logged_user))
+                {
+                    printf("\nLogin Successful\n");
+
+                    if(logged_user.role == ADMIN)
+                        admin_menu();
+                    else
+                        student_menu(logged_user);
+                }
+                else
+                    printf("Invalid Login\n");
+
+                break;
+
+            case 2:
+                printf("Exiting...\n");
+                return 0;
+
+            default:
+                printf("Invalid choice\n");
+        }
+    }
+}
+
